@@ -1,0 +1,6 @@
+
+
+* About the Gems graphics
+  The gem png files comes from a package available at the following site
+  http://www.lostgarden.com/2007/05/dancs-miraculously-flexible-game.html
+  http://www.lostgarden.com/2007/03/lost-garden-license.html
