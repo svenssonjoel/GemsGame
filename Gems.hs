@@ -139,6 +139,9 @@ occupied :: GameArea -> Pos -> Bool
 occupied (GameArea gs) (x,y) = 
   x >= 0 && x <= 4 && length (gs !! x) > y
   
+canMoveRight, canMoveLeft :: GameArea -> Pos -> Bool   
+canMoveLeft  ga = not . (occupied ga) . moveLeft
+canMoveRight ga = not . (occupied ga) . moveRight
 
 -- attach to column
 attach :: GameArea -> Int -> [Gem] -> GameArea
@@ -212,11 +215,7 @@ drawGem g dc p =
     Blue   -> drawImage dc gemBlue p   [] 
     Orange -> drawImage dc gemOrange p []
     Green  -> drawImage dc gemGreen p  []
-      
---drawGem Blue   dc p = 
---drawGem Orange dc p = 
---drawGem Green  dc p = 
-
+    
 
 drawStack :: DC a -> (GemStack,(Int,Int)) -> IO () 
 drawStack dc ([],_) = return ()
@@ -310,13 +309,19 @@ gui
              , on leftKey := 
                 do 
                    cp <- varGet currentClusterPos 
-                   varSet currentClusterPos (moveLeft cp) 
+                   ga <- varGet gameArea
+                   if canMoveLeft ga cp 
+                     then varSet currentClusterPos (moveLeft cp) 
+                     else return () 
                    repaint p
                    
              , on rightKey := 
                  do 
                    cp <- varGet currentClusterPos
-                   varSet currentClusterPos (moveRight cp)
+                   ga <- varGet gameArea
+                   if canMoveRight ga cp
+                     then varSet currentClusterPos (moveRight cp)
+                     else return ()
                    repaint p
              ]
        
