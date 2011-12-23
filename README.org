@@ -1,6 +1,17 @@
 
+* GemsGame 
+  A Gemstacking game as an exercise in wxHaskell. 
 
 * About the Gems graphics
   The gem png files comes from a package available at the following site
   http://www.lostgarden.com/2007/05/dancs-miraculously-flexible-game.html
   http://www.lostgarden.com/2007/03/lost-garden-license.html
+
+* TODOs 
+  + GemClusters of different orientation
+  + Check for "Lost game" 
+  + Keep Score
+  + Animate removal of gems (in some way) 
+  + MarkForDeletion and DeleteMarked should be performed until the game area
+    is unchanged between iterations. 
+  

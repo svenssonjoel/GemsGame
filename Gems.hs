@@ -3,7 +3,7 @@
 
 module Gems where 
 
-import Graphics.UI.WX hiding (stop,position)
+import Graphics.UI.WX -- hiding (stop,position)
 
 import Data.List
 
@@ -270,11 +270,8 @@ gui
                                    let stripped_ga = strip ga'
                                    varSet gameArea stripped_ga
                                else varSet currentClusterPos (moveDown cp)
-                               
-                             
-                             
                              repaint p
-                             putStrLn "hej"]
+                         ] 
                 
        quit  <- button f [text := "Quit", on command := close f]
        
@@ -282,8 +279,8 @@ gui
                            row 1 [widget quit]] 
        
        set t [ interval := 250 ]
-       set p [ on downKey := putStrLn "down" 
-             , on upKey := putStrLn "up"
+       set p [ on downKey := return () -- putStrLn "down" 
+             , on upKey := return () -- putStrLn "up"
              , on leftKey := 
                 do 
                    cp <- varGet currentClusterPos 
