@@ -8,10 +8,11 @@
   http://www.lostgarden.com/2007/03/lost-garden-license.html
 
 * TODOs 
-  + GemClusters of different orientation
-  + Check for "Lost game" 
-  + Keep Score
-  + Animate removal of gems (in some way) 
+  + GemClusters of different orientation.
+  + GemClusters with random gems.
+  + Check for "Lost game". 
+  + Keep Score.
+  + Animate removal of gems (in some way). 
   + MarkForDeletion and DeleteMarked should be performed until the game area
     is unchanged between iterations. 
   
