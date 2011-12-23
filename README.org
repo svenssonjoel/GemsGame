@@ -11,6 +11,7 @@
   + GemClusters of different orientation.
   + GemClusters with random gems.
   + Check for "Lost game". 
+  + Before moving cluster left or right, check if that is allowed. 
   + Keep Score.
   + Animate removal of gems (in some way). 
   + MarkForDeletion and DeleteMarked should be performed until the game area

@@ -1,22 +1,30 @@
 
 
-
 module Gems where 
 
-import Graphics.UI.WX -- hiding (stop,position)
+import Graphics.UI.WX 
 
 import Data.List
 
 width = 600
-height = 800 
+height = 700 
 
 runGUI :: IO ()
 runGUI = start gui 
 
 ---------------------------------------------------------------------------- 
 -- Game datatypes 
-data Gem      = Blue | Green | Orange
+data GemColor = Blue | Green | Orange
               deriving (Eq, Show)
+                       
+data GemStatus = Alive        -- a gems normal state
+               | Dying Int    -- count down to deletion (Animation counter) 
+  deriving (Eq, Show)  
+                       
+data Gem      = Gem { gemColor  :: GemColor,                        
+                      gemStatus :: GemStatus }
+              deriving (Eq, Show) 
+                       
 type GemStack = [Gem] 
 data GameArea = GameArea [GemStack] 
 type Score    = Integer
@@ -31,9 +39,14 @@ gemBlue  = image "./gemblue.png"
 gemGreen = image "./gemgreen.png"
 gemOrange = image "./gemorange.png"
 
+--gems
+blueGem = Gem Blue Alive
+greenGem = Gem Green Alive
+orangeGem = Gem Orange Alive 
+
 
 testCluster :: GemCluster 
-testCluster = [[Green,Blue,Orange]]    
+testCluster = [[greenGem,blueGem,orangeGem]]    
 
 {- testCluster represents  
    O
@@ -44,7 +57,7 @@ testCluster = [[Green,Blue,Orange]]
 -} 
 
 testCluster2 :: GemCluster 
-testCluster2 = [[Green],[Blue],[Orange]] 
+testCluster2 = [[greenGem],[blueGem],[orangeGem]] 
 
 {- testCluster2 represents
   
@@ -76,6 +89,19 @@ lost (GameArea gs) = any ((>= 10) . length) gs
      G 
   
 -}
+
+markForDeletionNew :: [GemStack] -> [GemStack]
+markForDeletionNew gs = 
+  [[Gem (gemColor ((gs !! x) !! y)) (if (tripplev (x,y) gs) then (Dying 3) else Alive)
+   | y <- [0..(length (gs !! x))-1]]| x <- [0..4]]
+
+deleteMarkedNew :: [GemStack] -> [GemStack] 
+deleteMarkedNew marked = map (filter living) marked
+  where
+    living (Gem _ Alive) = True                       
+    living _ = False
+
+
 markForDeletion :: [GemStack] -> [[(Gem,Bool)]] 
 markForDeletion gs = 
   [[((gs !! x) !! y,  tripplev (x,y) gs) | y <- [0..(length (gs !! x))-1]]| x <- [0..4]]
@@ -84,8 +110,10 @@ markForDeletion gs =
 deleteMarked :: [[(Gem,Bool)]] -> [GemStack] 
 deleteMarked marked = map (map fst . (filter (not . snd))) marked
 
+
+
 strip :: GameArea -> GameArea 
-strip (GameArea gs) = GameArea$ (deleteMarked . markForDeletion) gs
+strip (GameArea gs) = GameArea$ (deleteMarkedNew . markForDeletionNew) gs
   
 tripplev p@(x,_) lls | x == 0 = isLeftMost p lls
                      | x == 4 = isRightMost p lls 
@@ -133,9 +161,9 @@ offsetOnTop x = x - 40
  |BOGGG|
   -----
 -} 
-testGM = GameArea [[Blue],[Orange,Blue],[Green],[Green],[Green,Green]]
-testGM2 = GameArea [[Blue,Orange,Green],[Blue,Orange,Orange],[Blue,Orange,Green],[Green,Green,Green],[Orange,Green,Green]]
-lostGM = GameArea [[Blue],[Orange,Blue],[Green],[Green],[Green,Green,Blue,Blue,Orange]]
+--testGM = GameArea [[Blue],[Orange,Blue],[Green],[Green],[Green,Green]]
+--testGM2 = GameArea [[Blue,Orange,Green],[Blue,Orange,Orange],[Blue,Orange,Green],[Green,Green,Green],[Orange,Green,Green]]
+--lostGM = GameArea [[Blue],[Orange,Blue],[Green],[Green],[Green,Green,Blue,Blue,Orange]]
 
 {-
 
@@ -179,10 +207,15 @@ moveDown   p@(x,y) = if validPos (x,y-1) then (x,y-1) else p
 ----------------------------------------------------------------------------
 --
 
-
-drawGem Blue   dc p = drawImage dc gemBlue p   [] 
-drawGem Orange dc p = drawImage dc gemOrange p []
-drawGem Green  dc p = drawImage dc gemGreen p  []
+drawGem g dc p = 
+  case gemColor g of 
+    Blue   -> drawImage dc gemBlue p   [] 
+    Orange -> drawImage dc gemOrange p []
+    Green  -> drawImage dc gemGreen p  []
+      
+--drawGem Blue   dc p = 
+--drawGem Orange dc p = 
+--drawGem Green  dc p = 
 
 
 drawStack :: DC a -> (GemStack,(Int,Int)) -> IO () 
@@ -241,13 +274,6 @@ draw ga cp gc dc rect = do
 -- The GUI 
 gui 
   = do 
-    
-       let ga = strip testGM2 
-           (ga1,_) = clusterStick ga testCluster (3,2)
-           (ga2,_) = clusterStick ga1 testCluster (2,0) 
-           (ga3,_) = clusterStick ga2 testCluster (4,2)
-           
-           
        gameArea          <- varCreate emptyGameArea
        currentCluster    <- varCreate testCluster 
        currentClusterPos <- varCreate (3,15) 
