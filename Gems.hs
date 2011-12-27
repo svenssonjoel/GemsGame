@@ -6,7 +6,7 @@ import Graphics.UI.WX
 
 import Data.List
 
-width = 600
+width = 480
 height = 700 
 
 runGUI :: IO ()
@@ -23,7 +23,11 @@ data GemStatus = Alive        -- a gems normal state
                        
 data Gem      = Gem { gemColor  :: GemColor,                        
                       gemStatus :: GemStatus }
-              deriving (Eq, Show) 
+              deriving (Show) 
+                       
+instance Eq Gem where 
+  (==) (Gem c1 _) (Gem c2 _) = c1 == c2
+
                        
 type GemStack = [Gem] 
 data GameArea = GameArea [GemStack] 
@@ -96,9 +100,11 @@ lost (GameArea gs) = any ((>= 14) . length) gs
 -}
 
 markForDeletionNew :: [GemStack] -> [GemStack]
-markForDeletionNew gs = 
-  [[Gem (gemColor ((gs !! x) !! y)) (if (tripplev (x,y) gs) then (Dying 3) else Alive)
-   | y <- [0..(length (gs !! x))-1]]| x <- [0..4]]
+markForDeletionNew gs = markForDeletionVert gs'
+  where 
+    gs' = 
+      [[Gem (gemColor ((gs !! x) !! y)) (if (tripplev (x,y) gs) then (Dying 3) else Alive)
+       | y <- [0..(length (gs !! x))-1]]| x <- [0..4]]
 
 deleteMarkedNew :: [GemStack] -> [GemStack] 
 deleteMarkedNew marked = map (filter living) marked
@@ -106,7 +112,7 @@ deleteMarkedNew marked = map (filter living) marked
     living (Gem _ Alive) = True                       
     living _ = False
 
-
+{- 
 markForDeletion :: [GemStack] -> [[(Gem,Bool)]] 
 markForDeletion gs = 
   [[((gs !! x) !! y,  tripplev (x,y) gs) | y <- [0..(length (gs !! x))-1]]| x <- [0..4]]
@@ -114,7 +120,7 @@ markForDeletion gs =
   
 deleteMarked :: [[(Gem,Bool)]] -> [GemStack] 
 deleteMarked marked = map (map fst . (filter (not . snd))) marked
-
+-} 
 
 
 strip :: GameArea -> GameArea 
@@ -139,7 +145,22 @@ isCenterPiece p lls = check [0,-1,1] p lls
 isLeftMost    p lls = check [0,1,2] p lls 
 isRightMost   p lls = check [-2,-1,0] p lls 
 
-                       
+-- look for vertical groups of 3 or more to mark for deletion.
+markForDeletionVert :: [GemStack] -> [GemStack] 
+markForDeletionVert gs = map markColumn gs
+  where 
+    markColumn [] = [] 
+    markColumn [x] = [x]
+    markColumn [x,y] = [x,y] 
+    markColumn (x:y:z:xs) | x == y && y == z = 
+      let ny = Gem (gemColor y) (Dying 3)
+          nz = Gem (gemColor z) (Dying 3) 
+      in Gem (gemColor x) (Dying 3) : markColumn (ny:nz:xs)
+                          | otherwise = x : markColumn(y:z:xs)
+
+
+
+-- is position Pos in GameArea occupied ?                       
 occupied :: GameArea -> Pos -> Bool 
 occupied (GameArea gs) (x,y) = 
   x >= 0 && x <= 4 && length (gs !! x) > y
@@ -336,7 +357,6 @@ gui
                    repaint p
              , on (charKey 'r') := 
                  do
-                   putStrLn "charKey"
                    cc <- varGet currentCluster
                    varSet currentCluster (map (\x -> tail x ++ [head x]) cc) --  tail cc ++ [head cc])
                    repaint p 
