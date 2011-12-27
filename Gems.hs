@@ -31,6 +31,7 @@ instance Eq Gem where
                        
 type GemStack = [Gem] 
 data GameArea = GameArea [GemStack] 
+                deriving (Eq, Show)
 type Score    = Integer
 
 type GemCluster = [[Gem]] 
@@ -122,10 +123,18 @@ deleteMarked :: [[(Gem,Bool)]] -> [GemStack]
 deleteMarked marked = map (map fst . (filter (not . snd))) marked
 -} 
 
-
+--------------------------------------------------------------------------
+-- Remove large enough groups of Gems
 strip :: GameArea -> GameArea 
 strip (GameArea gs) = GameArea$ (deleteMarkedNew . markForDeletionNew) gs
   
+strip2 :: GameArea -> GameArea 
+strip2 gs | gs' == gs = gs  
+          | otherwise = strip2 gs'
+  where  gs' = strip gs 
+ 
+--------------------------------------------------------------------------
+-- find horizontal triples
 tripplev p@(x,_) lls | x == 0 = isLeftMost p lls
                      | x == 4 = isRightMost p lls 
                      | x == 2 = isLeftMost p lls || isRightMost p lls || isCenterPiece p lls 
@@ -321,7 +330,7 @@ gui
                                    varSet currentClusterPos (3,15)
                                    varSet currentCluster (head clusts)
                                    varSet clusters (tail clusts ++ [gc])
-                                   let stripped_ga = strip ga'
+                                   let stripped_ga = strip2 ga'
                                    varSet gameArea stripped_ga
                                else varSet currentClusterPos (moveDown cp)
                              if (lost ga') 
