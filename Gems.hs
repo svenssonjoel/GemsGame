@@ -47,6 +47,11 @@ orangeGem = Gem Orange Alive
 
 testCluster :: GemCluster 
 testCluster = [[greenGem,blueGem,orangeGem]]    
+testClusters = [[[blueGem,blueGem,orangeGem]],    
+                [[blueGem,blueGem,blueGem]],
+                [[orangeGem,blueGem,greenGem]],
+                [[orangeGem,orangeGem,blueGem]],
+                [[orangeGem,orangeGem,greenGem]]]
 
 {- testCluster represents  
    O
@@ -70,7 +75,7 @@ emptyGameArea = GameArea [[],[],[],[],[]]
 ----------------------------------------------------------------------------
 -- What it means to loose. 
 lost :: GameArea -> Bool 
-lost (GameArea gs) = any ((>= 10) . length) gs
+lost (GameArea gs) = any ((>= 14) . length) gs
 
 
 ---------------------------------------------------------------------------- 
@@ -276,7 +281,7 @@ gui
        gameArea          <- varCreate emptyGameArea
        currentCluster    <- varCreate testCluster 
        currentClusterPos <- varCreate (3,15) 
-                  
+       clusters          <- varCreate testClusters            
            
        f     <- frame    [text := "Grid"]
        p     <- panel  f [on paint := draw gameArea currentClusterPos currentCluster] 
@@ -291,10 +296,16 @@ gui
                              if (clust == [[]])  
                                then 
                                  do 
+                                   clusts <- varGet clusters 
                                    varSet currentClusterPos (3,15)
+                                   varSet currentCluster (head clusts)
+                                   varSet clusters (tail clusts ++ [gc])
                                    let stripped_ga = strip ga'
                                    varSet gameArea stripped_ga
                                else varSet currentClusterPos (moveDown cp)
+                             if (lost ga') 
+                               then close f -- bit drastic :)
+                               else return ()
                              repaint p
                          ] 
                 
@@ -323,6 +334,12 @@ gui
                      then varSet currentClusterPos (moveRight cp)
                      else return ()
                    repaint p
+             , on (charKey 'r') := 
+                 do
+                   putStrLn "charKey"
+                   cc <- varGet currentCluster
+                   varSet currentCluster (map (\x -> tail x ++ [head x]) cc) --  tail cc ++ [head cc])
+                   repaint p 
              ]
        
        set f [layout := lay]
