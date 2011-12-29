@@ -34,7 +34,7 @@ data GameArea = GameArea [GemStack]
                 deriving (Eq, Show)
 type Score    = Integer
 
-type GemCluster = [[Gem]] -- This representation allows you to "transpose" GemClusters 
+type GemCluster = [Gem] 
 
 type Pos = (Int,Int) 
 
@@ -53,12 +53,12 @@ gemWidth = 95
 gemHeight = 40
 
 testCluster :: GemCluster 
-testCluster = [[greenGem,blueGem,orangeGem]]    
-testClusters = [[[blueGem,blueGem,orangeGem]],    
-                [[blueGem,blueGem,blueGem]],
-                [[orangeGem,blueGem,greenGem]],
-                [[orangeGem,orangeGem,blueGem]],
-                [[orangeGem,orangeGem,greenGem]]]
+testCluster = [greenGem,blueGem,orangeGem]    
+testClusters = [[blueGem,blueGem,orangeGem],    
+                [blueGem,blueGem,blueGem],
+                [orangeGem,blueGem,greenGem],
+                [orangeGem,orangeGem,blueGem],
+                [orangeGem,orangeGem,greenGem]]
 
 
 
@@ -208,13 +208,12 @@ offsetOnTop x = x - 40
 
 validPos (x,y) = x >= 0 && x <= 4 && y >= 0 
 
--- if a cluster "touches" a stationary gem it "sticks" (or part of)  
+-- if a cluster "touches" a stationary gem it "sticks" 
 clusterStick :: GameArea -> GemCluster -> Pos -> (GameArea,GemCluster) 
-clusterStick ga [[]] p = (ga,[]) 
-clusterStick ga cl@[(g:gs)] (x,y) | occupied ga (x,y-1) = (attach ga x (g:gs),[[]])
-                                  | otherwise           = (ga,cl)
-clusterStick ga _ (x,y) = error$ show x ++ " " ++ show (y-1)
-
+clusterStick ga [] p = (ga,[]) 
+clusterStick ga cl (x,y) | occupied ga (x,y-1) = (attach ga x cl,[])
+                         | otherwise           = (ga,cl)
+  
 
 moveLeft   p@(x,y) = if validPos (x-1,y) then (x-1,y) else p
 moveRight  p@(x,y) = if validPos (x+1,y) then (x+1,y) else p
@@ -255,33 +254,14 @@ drawGameAreaVar ga_var dc rect =
     drawGameArea ga dc rect
     
     
--- needs work
---  TODO: draw clusters of both vertical and horizontal orientation
-{-     
-drawCluster :: Pos -> GemCluster -> DC a -> Rect -> IO () 
-drawCluster (x,y) [[g1,g2,g3]] dc rect = 
-  do 
-    let bottom = rectHeight rect
-        posFromBot x = (bottom - 170) - x   
-    drawGem g1 dc (point (x*95) (posFromBot ((y*40))))
-    drawGem g2 dc (point (x*95) (posFromBot ((y+1)*40)))
-    drawGem g3 dc (point (x*95) (posFromBot ((y+2)*40)))
--} 
-drawCluster2 :: Pos -> GemCluster -> DC a -> Rect -> IO () 
-drawCluster2 _ [] dc rect = return ()
-drawCluster2 (x,y) (c:cs) dc rect =      
-  do 
-    drawClusterColumn (x,y) c 
-    drawCluster2 (x+1,y) cs dc rect
-  where 
-    bottom = rectHeight rect
-    posFromBot x = (bottom - 170) - x   
-    drawClusterColumn _ [] = return () 
-    drawClusterColumn (x,y) (g:gs) = 
+drawCluster _ [] dc rect = return () 
+drawCluster (x,y) (g:gs) dc rect = 
       do 
+        let posFromBot x = (bottom - 170) - x   
+            bottom = rectHeight rect
         drawGem g dc (point (x*gemWidth) (posFromBot ((y*gemHeight))))
-        drawClusterColumn (x,y+1) gs
-
+        drawCluster (x,y+1) gs dc rect
+ 
 
 drawClusterVar :: Var Pos -> Var GemCluster -> DC a -> Rect -> IO () 
 drawClusterVar vp vgc dc rect = 
@@ -289,7 +269,7 @@ drawClusterVar vp vgc dc rect =
     p <- varGet vp
     gc <- varGet vgc 
           
-    drawCluster2 p gc dc rect
+    drawCluster p gc dc rect
   
 draw ga cp gc dc rect = do
   drawGameAreaVar ga dc rect
@@ -317,7 +297,7 @@ gui
                              let (ga',clust) = clusterStick ga gc cp
                                  
                              varSet gameArea ga'
-                             if (clust == [[]])  
+                             if (clust == [])  
                                then 
                                  do 
                                    clusts <- varGet clusters 
@@ -326,7 +306,10 @@ gui
                                    varSet clusters (tail clusts ++ [gc])
                                    let stripped_ga = strip2 ga'
                                    varSet gameArea stripped_ga
-                               else varSet currentClusterPos (moveDown cp)
+                               else 
+                                 do
+                                   -- putStrLn $ show clust
+                                   varSet currentClusterPos (moveDown cp)
                              if (lost ga') 
                                then close f -- bit drastic :)
                                else return ()
@@ -361,7 +344,7 @@ gui
              , on (charKey 'r') := 
                  do
                    cc <- varGet currentCluster
-                   varSet currentCluster (map (\x -> tail x ++ [head x]) cc) --  tail cc ++ [head cc])
+                   varSet currentCluster (tail cc ++ [head cc])
                    repaint p 
              ]
        
