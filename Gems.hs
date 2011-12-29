@@ -34,7 +34,7 @@ data GameArea = GameArea [GemStack]
                 deriving (Eq, Show)
 type Score    = Integer
 
-type GemCluster = [[Gem]] 
+type GemCluster = [[Gem]] -- This representation allows you to "transpose" GemClusters 
 
 type Pos = (Int,Int) 
 
@@ -49,6 +49,8 @@ blueGem = Gem Blue Alive
 greenGem = Gem Green Alive
 orangeGem = Gem Orange Alive 
 
+gemWidth = 95
+gemHeight = 40
 
 testCluster :: GemCluster 
 testCluster = [[greenGem,blueGem,orangeGem]]    
@@ -58,21 +60,7 @@ testClusters = [[[blueGem,blueGem,orangeGem]],
                 [[orangeGem,orangeGem,blueGem]],
                 [[orangeGem,orangeGem,greenGem]]]
 
-{- testCluster represents  
-   O
-   | 
-   B 
-   | 
-   G 
--} 
 
-testCluster2 :: GemCluster 
-testCluster2 = [[greenGem],[blueGem],[orangeGem]] 
-
-{- testCluster2 represents
-  
-   G-B-O
--} 
 
 
 emptyGameArea = GameArea [[],[],[],[],[]] 
@@ -100,33 +88,24 @@ lost (GameArea gs) = any ((>= 14) . length) gs
   
 -}
 
-markForDeletionNew :: [GemStack] -> [GemStack]
-markForDeletionNew gs = markForDeletionVert gs'
+markForDeletion :: [GemStack] -> [GemStack]
+markForDeletion gs = markForDeletionVert gs'
   where 
     gs' = 
       [[Gem (gemColor ((gs !! x) !! y)) (if (tripplev (x,y) gs) then (Dying 3) else Alive)
        | y <- [0..(length (gs !! x))-1]]| x <- [0..4]]
 
-deleteMarkedNew :: [GemStack] -> [GemStack] 
-deleteMarkedNew marked = map (filter living) marked
+deleteMarked :: [GemStack] -> [GemStack] 
+deleteMarked marked = map (filter living) marked
   where
     living (Gem _ Alive) = True                       
     living _ = False
 
-{- 
-markForDeletion :: [GemStack] -> [[(Gem,Bool)]] 
-markForDeletion gs = 
-  [[((gs !! x) !! y,  tripplev (x,y) gs) | y <- [0..(length (gs !! x))-1]]| x <- [0..4]]
-    
-  
-deleteMarked :: [[(Gem,Bool)]] -> [GemStack] 
-deleteMarked marked = map (map fst . (filter (not . snd))) marked
--} 
 
 --------------------------------------------------------------------------
 -- Remove large enough groups of Gems
 strip :: GameArea -> GameArea 
-strip (GameArea gs) = GameArea$ (deleteMarkedNew . markForDeletionNew) gs
+strip (GameArea gs) = GameArea$ (deleteMarked . markForDeletion) gs
   
 strip2 :: GameArea -> GameArea 
 strip2 gs | gs' == gs = gs  
@@ -278,6 +257,7 @@ drawGameAreaVar ga_var dc rect =
     
 -- needs work
 --  TODO: draw clusters of both vertical and horizontal orientation
+{-     
 drawCluster :: Pos -> GemCluster -> DC a -> Rect -> IO () 
 drawCluster (x,y) [[g1,g2,g3]] dc rect = 
   do 
@@ -286,8 +266,22 @@ drawCluster (x,y) [[g1,g2,g3]] dc rect =
     drawGem g1 dc (point (x*95) (posFromBot ((y*40))))
     drawGem g2 dc (point (x*95) (posFromBot ((y+1)*40)))
     drawGem g3 dc (point (x*95) (posFromBot ((y+2)*40)))
-  
-     
+-} 
+drawCluster2 :: Pos -> GemCluster -> DC a -> Rect -> IO () 
+drawCluster2 _ [] dc rect = return ()
+drawCluster2 (x,y) (c:cs) dc rect =      
+  do 
+    drawClusterColumn (x,y) c 
+    drawCluster2 (x+1,y) cs dc rect
+  where 
+    bottom = rectHeight rect
+    posFromBot x = (bottom - 170) - x   
+    drawClusterColumn _ [] = return () 
+    drawClusterColumn (x,y) (g:gs) = 
+      do 
+        drawGem g dc (point (x*gemWidth) (posFromBot ((y*gemHeight))))
+        drawClusterColumn (x,y+1) gs
+
 
 drawClusterVar :: Var Pos -> Var GemCluster -> DC a -> Rect -> IO () 
 drawClusterVar vp vgc dc rect = 
@@ -295,7 +289,7 @@ drawClusterVar vp vgc dc rect =
     p <- varGet vp
     gc <- varGet vgc 
           
-    drawCluster p gc dc rect
+    drawCluster2 p gc dc rect
   
 draw ga cp gc dc rect = do
   drawGameAreaVar ga dc rect
