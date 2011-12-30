@@ -281,9 +281,9 @@ draw ga cp gc dc rect = do
 ----------------------------------------------------------------------------
 -- new random Gem Cluster (needs work)
 randomCluster :: StdGen -> (GemCluster,StdGen) 
-randomCluster stdgen = ([gems !! x | x <- is] ,g') 
+randomCluster stdgen = ([gems !! (x `mod` 10) | x <- is] ,g') 
   where (i,g) = randomR (2,4) stdgen -- 2,3 or 4 gems  
-        (is,g') = randomRs' (0,9) g i   -- what gems
+        (is,g') = randomRs' (0,100) g i   -- what gems
         gems = [blueGem,blueGem,blueGem,
                 greenGem,greenGem,greenGem,
                 orangeGem,orangeGem,orangeGem, bugGem]    
