@@ -14,7 +14,7 @@ runGUI = start gui
 
 ---------------------------------------------------------------------------- 
 -- Game datatypes 
-data GemColor = Blue | Green | Orange
+data GemColor = Blue | Green | Orange | Bug
               deriving (Eq, Show)
                        
 data GemStatus = Alive        -- a gems normal state
@@ -43,11 +43,13 @@ type Pos = (Int,Int)
 gemBlue  = image "./gemblue.png"
 gemGreen = image "./gemgreen.png"
 gemOrange = image "./gemorange.png"
+bug       = image "./bug.png"
 
 --gems
 blueGem = Gem Blue Alive
 greenGem = Gem Green Alive
 orangeGem = Gem Orange Alive 
+bugGem    = Gem Bug Alive
 
 gemWidth = 95
 gemHeight = 40
@@ -228,6 +230,7 @@ drawGem g dc p =
     Blue   -> drawImage dc gemBlue p   [] 
     Orange -> drawImage dc gemOrange p []
     Green  -> drawImage dc gemGreen p  []
+    Bug    -> drawImage dc bug p []
     
 
 drawStack :: DC a -> (GemStack,(Int,Int)) -> IO () 
@@ -278,12 +281,19 @@ draw ga cp gc dc rect = do
 ----------------------------------------------------------------------------
 -- new random Gem Cluster (needs work)
 randomCluster :: StdGen -> (GemCluster,StdGen) 
-randomCluster stdgen = ([[blueGem,greenGem,orangeGem]!!x | x <- is] ,g) 
+randomCluster stdgen = ([gems !! x | x <- is] ,g') 
   where (i,g) = randomR (2,4) stdgen -- 2,3 or 4 gems  
-        is = take i (randomRs (0,2) g)   -- what gems
-    
-    
-
+        (is,g') = randomRs' (0,9) g i   -- what gems
+        gems = [blueGem,blueGem,blueGem,
+                greenGem,greenGem,greenGem,
+                orangeGem,orangeGem,orangeGem, bugGem]    
+               
+randomRs' :: (Random a, RandomGen g) => (a, a) -> g -> Integer -> ([a],g)
+randomRs' _ g 0        = ([],g) 
+randomRs' interval g n = (i : is,g'') 
+  where 
+    (i,g') = randomR interval g 
+    (is,g'') = randomRs' interval g' (n-1)
 ----------------------------------------------------------------------------
 -- The GUI 
 gui 
