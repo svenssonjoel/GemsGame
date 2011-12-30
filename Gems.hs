@@ -3,7 +3,7 @@
 module Gems where 
 
 import Graphics.UI.WX 
-
+import System.Random
 import Data.List
 
 width = 480
@@ -275,8 +275,14 @@ draw ga cp gc dc rect = do
   drawGameAreaVar ga dc rect
   drawClusterVar  cp gc dc rect 
   
-
-
+----------------------------------------------------------------------------
+-- new random Gem Cluster (needs work)
+randomCluster :: StdGen -> (GemCluster,StdGen) 
+randomCluster stdgen = ([[blueGem,greenGem,orangeGem]!!x | x <- is] ,g) 
+  where (i,g) = randomR (2,4) stdgen -- 2,3 or 4 gems  
+        is = take i (randomRs (0,2) g)   -- what gems
+    
+    
 
 ----------------------------------------------------------------------------
 -- The GUI 
@@ -285,7 +291,9 @@ gui
        gameArea          <- varCreate emptyGameArea
        currentCluster    <- varCreate testCluster 
        currentClusterPos <- varCreate (3,15) 
+       currentGen        <- varCreate (mkStdGen 3)
        clusters          <- varCreate testClusters            
+       
            
        f     <- frame    [text := "Grid"]
        p     <- panel  f [on paint := draw gameArea currentClusterPos currentCluster] 
@@ -301,9 +309,15 @@ gui
                                then 
                                  do 
                                    clusts <- varGet clusters 
+                                   curgen <- varGet currentGen
+                                   
+                                   let (newClust,gen) = randomCluster curgen
+                                   
                                    varSet currentClusterPos (3,15)
-                                   varSet currentCluster (head clusts)
+                                   varSet currentCluster newClust -- (head clusts)
                                    varSet clusters (tail clusts ++ [gc])
+                                   varSet currentGen gen
+                                   
                                    let stripped_ga = strip2 ga'
                                    varSet gameArea stripped_ga
                                else 
